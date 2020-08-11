@@ -1,0 +1,22 @@
+{
+  "name": "youtube-playlist-fetcher",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Mateusz Głowski",
+  "license": "ISC",
+  "dependencies": {
+    "google-auth-library": "^6.0.6",
+    "googleapis": "^58.0.0",
+    "immutable": "^4.0.0-rc.12",
+    "opn": "^6.0.0",
+    "request": "^2.88.2",
+    "youtube-dl": "^3.0.2",
+    "youtube-playlist-summary": "^2.1.4",
+    "youtube-v3-api": "^1.1.1"
+  }
+}
