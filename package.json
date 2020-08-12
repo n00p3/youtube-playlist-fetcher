@@ -8,7 +8,7 @@
   },
   "keywords": [],
   "author": "Mateusz Głowski",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "file-type": "^14.7.1",
     "google-auth-library": "^6.0.6",
