@@ -18,6 +18,7 @@ module.exports = {
      * Leave empty to sync all.
      */
     playlistIds: [''],
+    playlistIds: [],
 
     /**
      * Path where files will be saved.
