@@ -17,7 +17,7 @@ module.exports = {
      * List of YouTube playlists you want to sync.
      * Leave empty to sync all.
      */
-    playlistIds: [''],
+    playlistIds: [],
 
     /**
      * Path where files will be saved.
