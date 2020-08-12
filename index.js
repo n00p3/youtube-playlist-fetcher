@@ -156,13 +156,13 @@ function downloadVideo(playlist, video, auth) {
         `${video.title} ${video.videoId}`
     )
 
+    if (!fs.existsSync(path.dirname(p)))
+        fs.mkdirSync(path.dirname(p))
+
     if (fs.readdirSync(path.dirname(p)).filter(it => it.includes(video.videoId)).length > 0) {
         console.log(`Video ${video.title} is already downloaded, skipping.`);
         return new Promise(((resolve, reject) => resolve(false)));
     }
-
-    if (!fs.existsSync(path.dirname(p)))
-        fs.mkdirSync(path.dirname(p))
 
     fs.writeFileSync(p + '.txt', video.description)
 
