@@ -6,6 +6,7 @@ const opn = require('opn')
 const config = require('./config');
 const path = require('path');
 const youtubeDl = require('youtube-dl');
+const FileType = require('file-type');
 
 // If modifying these scopes, delete your previously saved credentials
 // at ~/.credentials/youtube-nodejs-quickstart.json
@@ -155,11 +156,7 @@ function downloadVideo(playlist, video, auth) {
         `${video.title} ${video.videoId}`
     )
 
-    if (fs.existsSync(path.join(
-        config.outputPath,
-        `${playlist.title} ${playlist.id}`,
-        `${video.title} ${video.videoId}`
-        ))) {
+    if (fs.readdirSync(path.dirname(p)).filter(it => it.includes(video.videoId)).length > 0) {
         console.log(`Video ${video.title} is already downloaded, skipping.`);
         return new Promise(((resolve, reject) => resolve(false)));
     }
@@ -174,19 +171,10 @@ function downloadVideo(playlist, video, auth) {
 
         videoDl.on('info', function(info) {
             console.log('Download started')
-            console.log('filename: ' + info._filename)
 
             // info.size will be the amount to download, add
             let total = info.size + downloaded
-            console.log('size: ' + total)
-
-            if (downloaded > 0) {
-                // size will be the amount already downloaded
-                console.log('resuming from: ' + downloaded)
-
-                // display the remaining bytes to download
-                console.log('remaining bytes: ' + info.size)
-            }
+            console.log('size: ' + Math.round(total / 1_000_000) + ' MB')
         })
 
         if (!fs.existsSync(path.dirname(p)))
@@ -194,9 +182,14 @@ function downloadVideo(playlist, video, auth) {
 
         videoDl.pipe(fs.createWriteStream(p), { flags: 'a' });
 
-        videoDl.on('end', () => {
+        videoDl.on('end', (info) => {
             console.log(`${video.title} downloaded.`)
-            resolve()
+            // Add ext.
+            FileType.fromFile(p)
+                .then(n => {
+                    fs.renameSync(p, p + '.' + n.ext);
+                    resolve()
+                })
         })
     })
 }
