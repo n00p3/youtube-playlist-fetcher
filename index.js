@@ -21,7 +21,7 @@ fs.readFile('client_secret.json', function processClientSecrets(err, content) {
         return;
     }
     // Authorize a client with the loaded credentials, then call the YouTube API.
-    authorize(JSON.parse(content), getChannel);
+    authorize(JSON.parse(content), parse);
 });
 
 /**
@@ -127,13 +127,15 @@ function getPlaylists(auth) {
             if (err) {
                 reject(err)
             } else {
-                resolve(ok.data.items.map(it => {
+                const playlists = ok.data.items.map(it => {
                     return {
                         id: it.id,
                         title: it.snippet.title,
                         description: it.snippet.description,
                     }
-                }))
+                })
+                const filtered = filterPlaylists(playlists);
+                resolve(filtered);
             }
         })
     })
@@ -159,8 +161,11 @@ function downloadVideo(playlist, video, auth) {
         `${video.title} ${video.videoId}`
         ))) {
         console.log(`Video ${video.title} is already downloaded, skipping.`);
-        return new Promise(() => {});
+        return new Promise(((resolve, reject) => resolve(false)));
     }
+
+    if (!fs.existsSync(path.dirname(p)))
+        fs.mkdirSync(path.dirname(p))
 
     fs.writeFileSync(p + '.txt', video.description)
 
@@ -201,13 +206,20 @@ function downloadVideo(playlist, video, auth) {
  * @param videos {[{videoId: string, title: string, description: string}]}
  * @param auth
  */
-async function playlistDownloaderHandler(playlist, videos, auth) {
-    setTimeout(async () => {
+async function playlistDownloaderHandler(playlist, videos, auth, disableTimeout) {
+    if (disableTimeout) {
         if (videos.length > 0) {
-            await downloadVideo(playlist, videos[0], auth)
-            await playlistDownloaderHandler(playlist, videos.slice(1), auth)
+            const result = await downloadVideo(playlist, videos[0], auth)
+            await playlistDownloaderHandler(playlist, videos.slice(1), auth, result === false)
         }
-    }, config.downloadTimeout * 1000)
+    } else {
+        setTimeout(async () => {
+            if (videos.length > 0) {
+                await downloadVideo(playlist, videos[0], auth)
+                await playlistDownloaderHandler(playlist, videos.slice(1), auth)
+            }
+        }, config.downloadTimeout * 1000)
+    }
 }
 
 /**
@@ -242,7 +254,7 @@ function getPlaylistVideosHandler(playlistId, auth, pageToken, outArr, callback)
 function getPlaylistVideos(playlist, auth) {
     new Promise((resolve, reject) => {
         getPlaylistVideosHandler(playlist.id, auth, null, [], (err, out) => {
-            console.log(out)
+            // console.log(out)
             const parsed = []
 
             out.map(it => {
@@ -253,47 +265,17 @@ function getPlaylistVideos(playlist, auth) {
                 })
             })
 
-            playlistDownloaderHandler(playlist, parsed, auth)
+            playlistDownloaderHandler(playlist, parsed, auth, true)
 
             resolve(out)
         })
     })
 }
 
-/**
- * Lists the names and IDs of up to 10 files.
- *
- * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
- */
-function getChannel(auth) {
-    var service = google.youtube('v3');
-    service.channels.list({
-        auth: auth,
-        part: 'snippet,contentDetails,statistics',
-        mine: true,
-        // forUsername: 'GoogleDevelopers'
-    }, function (err, response) {
-        if (err) {
-            console.log('The API returned an error: ' + err);
-            return;
-        }
-        var channels = response.data.items;
-        if (channels.length === 0) {
-            console.log('No channel found.');
-        } else {
-            console.log('This channel\'s ID is %s. Its title is \'%s\', and ' +
-                'it has %s views.',
-                channels[0].id,
-                channels[0].snippet.title,
-                channels[0].statistics.viewCount);
-            // getPlaylists(auth)
-            //     .then(n => {
-            //         // console.log(n)
-            //         const filtered = filterPlaylists(n)
-            //         playlistDownloaderHandler(filtered)
-            //     }).catch(e => console.error(e))
-            getPlaylistVideos({ id: '', title: 'test' }, auth)
-        }
-    });
+async function parse(auth) {
+    const service = google.youtube('v3');
+    const playlists = await getPlaylists(auth)
+    for (const playlist of playlists) {
+        getPlaylistVideos(playlist, auth)
+    }
 }
-
